@@ -58,6 +58,8 @@ describe("escrow", () => {
       provider.wallet.publicKey
     );
 
+    console.log(initializerTokenAccount.toBase58());
+
     await mint.mintTo(
       initializerTokenAccount,
       mintAuthority.publicKey,
@@ -102,6 +104,7 @@ describe("escrow", () => {
     let _escrowAccount: EscrowAccount =
       await program.account.escrowAccount.fetch(escrowAccount.publicKey);
 
+    console.log(_escrowAccount.tokenAccountPubkey.toBase58());
     // Check that the new owner is the PDA.
     assert.ok(_initializerTokenAccount.owner.equals(pda));
 

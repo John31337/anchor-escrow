@@ -18,6 +18,7 @@ pub mod escrow {
         ctx.accounts.escrow_account.token_account_pubkey = 
         *ctx.accounts.initializer_token_account.to_account_info().key;
         ctx.accounts.escrow_account.amount = initializer_amount;
+        ctx.accounts.escrow_account.token_account_pubkey = ctx.accounts.initializer_token_account.key();
         
         let escrow_key = ctx.accounts.escrow_account.key();
         let (pda, _bump_seed) = Pubkey::find_program_address(&[ESCROW_PDA_SEED, escrow_key.as_ref()], ctx.program_id);
@@ -61,7 +62,7 @@ pub mod escrow {
                 .into_set_authority_context()
                 .with_signer(&[&seeds[..]]),
             AuthorityType::AccountOwner,
-            Some(ctx.accounts.escrow_account.seller),
+            Some(ctx.accounts.buyer.key()),
         )?;
 
         Ok(())
@@ -72,7 +73,7 @@ pub mod escrow {
 #[derive(Accounts)]
 #[instruction(initializer_amount: u64)]
 pub struct List<'info> {
-    #[account(signer, mut)]
+    #[account(signer)]
     pub initializer: AccountInfo<'info>,
     #[account(
         mut,
@@ -107,6 +108,7 @@ pub struct Buy<'info> {
 
 #[derive(Accounts)]
 pub struct Cancel<'info> {
+    #[account(signer, mut)]
     pub user: AccountInfo<'info>,
     #[account(mut)]
     pub pda_token_account: Account<'info, TokenAccount>,
