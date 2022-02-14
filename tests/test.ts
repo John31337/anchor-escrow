@@ -28,6 +28,7 @@ describe("escrow", () => {
   const payer = Keypair.generate();
   const buyer = Keypair.generate();
   const mintAuthority = Keypair.generate();
+  const mint_key = Keypair.generate();
 
 
   it("Initialise escrow state", async () => {
@@ -67,7 +68,6 @@ describe("escrow", () => {
       initializerAmount
     );
 
-
     let _initializerTokenAccount = await mint.getAccountInfo(
       initializerTokenAccount
     );
@@ -75,6 +75,7 @@ describe("escrow", () => {
   });
 
   it("Initialize escrow", async () => {
+
     await program.rpc.list(
       new BN(initializerAmount),
       {
@@ -84,6 +85,7 @@ describe("escrow", () => {
           escrowAccount: escrowAccount.publicKey,
           systemProgram: SystemProgram.programId,
           tokenProgram: TOKEN_PROGRAM_ID,
+          mintKey: mint_key.publicKey,
         },
         signers: [escrowAccount],
       }
@@ -101,9 +103,15 @@ describe("escrow", () => {
       initializerTokenAccount
     );
 
+    let escrows = await program.account.escrowAccount.all();
+    console.log(escrows);
+    (await escrows).forEach(element => {
+      console.log(element);
+    });
+
     let _escrowAccount: EscrowAccount =
       await program.account.escrowAccount.fetch(escrowAccount.publicKey);
-
+    console.log(_escrowAccount);
     console.log(_escrowAccount.tokenAccountPubkey.toBase58());
     // Check that the new owner is the PDA.
     assert.ok(_initializerTokenAccount.owner.equals(pda));
@@ -153,6 +161,7 @@ describe("escrow", () => {
           escrowAccount: newEscrow.publicKey,
           systemProgram: SystemProgram.programId,
           tokenProgram: TOKEN_PROGRAM_ID,
+          mintKey: mint_key,
         },
         signers: [newEscrow],
       }

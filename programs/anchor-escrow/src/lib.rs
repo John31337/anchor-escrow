@@ -14,11 +14,13 @@ pub mod escrow {
         ctx: Context<List>,
         initializer_amount: u64,
     ) -> ProgramResult {
+        ctx.accounts.escrow_account.is_initialized = true;
         ctx.accounts.escrow_account.seller = *ctx.accounts.initializer.key;
         ctx.accounts.escrow_account.token_account_pubkey = 
         *ctx.accounts.initializer_token_account.to_account_info().key;
         ctx.accounts.escrow_account.amount = initializer_amount;
         ctx.accounts.escrow_account.token_account_pubkey = ctx.accounts.initializer_token_account.key();
+        ctx.accounts.escrow_account.mint_key = ctx.accounts.mint_key.key();
         
         let escrow_key = ctx.accounts.escrow_account.key();
         let (pda, _bump_seed) = Pubkey::find_program_address(&[ESCROW_PDA_SEED, escrow_key.as_ref()], ctx.program_id);
@@ -27,6 +29,7 @@ pub mod escrow {
     }
 
     pub fn cancel(ctx: Context<Cancel>) -> ProgramResult {
+        ctx.accounts.escrow_account.is_initialized = false;
         let escrow_key = ctx.accounts.escrow_account.key();
         let (_pda, bump_seed) = Pubkey::find_program_address(&[ESCROW_PDA_SEED, escrow_key.as_ref()], ctx.program_id);
         let seeds = &[&ESCROW_PDA_SEED, escrow_key.as_ref(), &[bump_seed]];
@@ -37,11 +40,14 @@ pub mod escrow {
             Some(ctx.accounts.escrow_account.seller),
         )?;
 
+        ctx.accounts.escrow_account.is_initialized = false;
+
         Ok(())
     }
 
     pub fn buy(ctx: Context<Buy>) -> ProgramResult {
         // Transferring from initializer to taker
+        ctx.accounts.escrow_account.is_initialized = false;
         let escrow_key = ctx.accounts.escrow_account.key();
         let (_pda, bump_seed) = Pubkey::find_program_address(&[ESCROW_PDA_SEED, escrow_key.as_ref()], ctx.program_id);
         let seeds = &[&ESCROW_PDA_SEED, escrow_key.as_ref(), &[bump_seed]];
@@ -73,13 +79,11 @@ pub mod escrow {
 #[derive(Accounts)]
 #[instruction(initializer_amount: u64)]
 pub struct List<'info> {
-    #[account(signer)]
+    #[account(signer, mut)]
     pub initializer: AccountInfo<'info>,
-    #[account(
-        mut,
-        constraint = initializer_token_account.amount >= initializer_amount
-    )]
+    #[account(mut)]
     pub initializer_token_account: Account<'info, TokenAccount>,
+    pub mint_key: AccountInfo<'info>,
     #[account(init, payer = initializer, space = 8 + EscrowAccount::LEN)]
     pub escrow_account: Account<'info, EscrowAccount>,
     pub system_program: Program<'info, System>,
